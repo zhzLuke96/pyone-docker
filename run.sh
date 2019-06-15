@@ -12,5 +12,5 @@ mongod -auth --bind_ip 127.0.0.1 --port 27017 --dbpath /data/db --fork --logpath
 wait $!
 
 cd /PyOne
-gunicorn -k gevent -b 0.0.0.0:80 run:app &
+gunicorn -k eventlet -b 0.0.0.0:80 run:app &
 wait $!

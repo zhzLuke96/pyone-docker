@@ -1,34 +1,29 @@
-FROM alpine
+FROM python:2.7.15-stretch
 
+WORKDIR /
+RUN mkdir -p /data/db /data/log /data/aria2/download && \
+    touch /data/aria2/aria2.session
+
+RUN git clone https://github.com/abbeyokgo/PyOne.git --depth=1; \
+    mv ./PyOne /root/PyOne
 COPY aria2.conf /data/aria2/
-COPY run.sh /
 
-RUN mkdir -p /PyOne /data/db /data/log /data/aria2/download && \
-    touch /data/aria2/aria2.session && \
-    chmod +x /run.sh
+WORKDIR /root/PyOne/
 
-
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories && \
-    apk update
-
-# python3
-RUN RUN apk add --no-cache python3 && \
-    python3 -m ensurepip && \
-    rm -r /usr/lib/python*/ensurepip && \
-    pip3 install --upgrade pip setuptools && \
-    if [ ! -e /usr/bin/pip ]; then ln -s pip3 /usr/bin/pip ; fi && \
-    if [[ ! -e /usr/bin/python ]]; then ln -sf /usr/bin/python3 /usr/bin/python; fi && \
-    rm -r /root/.cache
-
-RUN apk add aria2 sudo curl git bash mongodb redis python3-dev gcc libc-dev linux-headers musl-dev
-
-RUN git clone https://github.com/abbeyokgo/PyOne.git; \
-    cd /PyOne; \
+RUN sed -i "s@http://deb.debian.org@http://mirrors.163.com@g" /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get install -y curl redis-server aria2 && \
     pip install -r requirements.txt
-        
-RUN cd /PyOne; \
-    cp self_config.py.sample config.py; \
-    cp supervisord.conf.sample supervisord.confi
+
+RUN cp self_config.py.sample self_config.py && \
+    curl https://www.mongodb.org/static/pgp/server-3.6.asc | apt-key add - && \
+    echo "deb http://repo.mongodb.org/apt/debian stretch/mongodb-org/3.6 main" | tee /etc/apt/sources.list.d/mongodb-org-3.6.list && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /	
+COPY start.sh /
+RUN chmod +x /start.sh
 
 EXPOSE 80
+
 ENTRYPOINT ["/run.sh"]
